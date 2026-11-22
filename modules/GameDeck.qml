@@ -459,21 +459,21 @@ Item {
 
             // Dedicated Vertical Separation between Cover Art and Telemetry Data
             Item {
-                Layout.preferredHeight: 80
+                Layout.preferredHeight: 60
                 Layout.fillWidth: true
             }
 
-            // Prominent Hardware & Chrono Cluster (Sits comfortably directly over the blurred backdrop - NO Glass Box!)
+            // Prominent Hardware & Chrono Cluster (Refined, Spacious & Breathable 2-Row Architecture)
             Item {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: Math.min(parent.width * 0.90, 840)
-                Layout.preferredHeight: 450
+                Layout.preferredHeight: 200
 
                 ColumnLayout {
                     anchors.fill: parent
-                    spacing: 22
+                    spacing: 20
 
-                    // ROW 1: Real-Time FPS & System Power Draw
+                    // ROW 1: Real-Time Framerate, Pacing & System Power Draw
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 0
@@ -484,11 +484,11 @@ Item {
                             spacing: 6
 
                             Text {
-                                text: "REALTIME FRAMERATE"
-                                font.pixelSize: 12
-                                font.letterSpacing: 2.5
+                                text: "FRAMERATE & PACING"
+                                font.pixelSize: 11
+                                font.letterSpacing: 2.2
                                 font.weight: Font.Bold
-                                color: Qt.rgba(0.82, 0.88, 0.96, 0.75)
+                                color: Qt.rgba(0.75, 0.82, 0.92, 0.70)
                                 style: Text.Raised
                                 styleColor: Qt.rgba(0, 0, 0, 0.75)
                             }
@@ -497,7 +497,7 @@ Item {
                                 spacing: 8
                                 Text {
                                     text: root.hasFps ? (root.gameFps + " FPS") : (root.gpuUsage + "% LOAD")
-                                    font.pixelSize: 34
+                                    font.pixelSize: 28
                                     font.family: "monospace"
                                     font.weight: Font.Bold
                                     color: "#ffffff"
@@ -507,10 +507,10 @@ Item {
                                 Text {
                                     visible: root.hasFps
                                     text: "•  " + root.frameTime.toFixed(1) + " MS"
-                                    font.pixelSize: 18
+                                    font.pixelSize: 15
                                     font.family: "monospace"
                                     font.weight: Font.DemiBold
-                                    color: Qt.rgba(0.72, 0.82, 0.95, 0.65)
+                                    color: Qt.rgba(0.70, 0.80, 0.95, 0.60)
                                     Layout.alignment: Qt.AlignBaseline
                                 }
                             }
@@ -518,14 +518,14 @@ Item {
 
                         // Vertical Divider
                         Item {
-                            Layout.preferredWidth: 80
-                            Layout.preferredHeight: 52
+                            Layout.preferredWidth: 60
+                            Layout.preferredHeight: 46
 
                             Rectangle {
                                 anchors.centerIn: parent
                                 width: 1
                                 height: parent.height
-                                color: Qt.rgba(1, 1, 1, 0.22)
+                                color: Qt.rgba(1, 1, 1, 0.18)
                             }
                         }
 
@@ -536,10 +536,10 @@ Item {
 
                             Text {
                                 text: "SYSTEM POWER DRAW"
-                                font.pixelSize: 12
-                                font.letterSpacing: 2.5
+                                font.pixelSize: 11
+                                font.letterSpacing: 2.2
                                 font.weight: Font.Bold
-                                color: Qt.rgba(0.82, 0.88, 0.96, 0.75)
+                                color: Qt.rgba(0.75, 0.82, 0.92, 0.70)
                                 style: Text.Raised
                                 styleColor: Qt.rgba(0, 0, 0, 0.75)
                             }
@@ -548,7 +548,7 @@ Item {
                                 spacing: 8
                                 Text {
                                     text: Math.round(root.totalWatts) + " W"
-                                    font.pixelSize: 34
+                                    font.pixelSize: 28
                                     font.family: "monospace"
                                     font.weight: Font.Bold
                                     color: "#ffffff"
@@ -557,10 +557,10 @@ Item {
                                 }
                                 Text {
                                     text: "• GPU " + Math.round(root.gpuWatts) + "W"
-                                    font.pixelSize: 18
+                                    font.pixelSize: 15
                                     font.family: "monospace"
                                     font.weight: Font.DemiBold
-                                    color: Qt.rgba(0.72, 0.82, 0.95, 0.65)
+                                    color: Qt.rgba(0.70, 0.80, 0.95, 0.60)
                                     Layout.alignment: Qt.AlignBaseline
                                 }
                             }
@@ -571,275 +571,115 @@ Item {
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 1
-                        color: Qt.rgba(1, 1, 1, 0.16)
+                        color: Qt.rgba(1, 1, 1, 0.14)
                     }
 
-                    // ROW 2: Hardware Load, Thermals & VRAM
+                    // ROW 2: Hardware Telemetry, VRAM & Session Progress
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 0
 
-                        // CPU Stats (Left Column)
+                        // Hardware Load & VRAM (Left Column)
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 6
 
                             Text {
-                                text: "CPU LOAD & TEMP"
-                                font.pixelSize: 12
-                                font.letterSpacing: 2.5
-                                font.weight: Font.Bold
-                                color: Qt.rgba(0.82, 0.88, 0.96, 0.75)
-                                style: Text.Raised
-                                styleColor: Qt.rgba(0, 0, 0, 0.75)
-                            }
-
-                            Text {
-                                text: root.cpuUsage + "%  •  " + root.cpuTemp + "°C"
-                                font.pixelSize: 34
-                                font.family: "monospace"
-                                font.weight: Font.Bold
-                                color: "#ffffff"
-                                style: Text.Raised
-                                styleColor: Qt.rgba(0, 0, 0, 0.75)
-                            }
-                        }
-
-                        // Vertical Divider
-                        Item {
-                            Layout.preferredWidth: 80
-                            Layout.preferredHeight: 52
-
-                            Rectangle {
-                                anchors.centerIn: parent
-                                width: 1
-                                height: parent.height
-                                color: Qt.rgba(1, 1, 1, 0.22)
-                            }
-                        }
-
-                        // GPU & VRAM Stats (Right Column)
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 6
-
-                            Text {
-                                text: "GPU LOAD, TEMP & VRAM"
-                                font.pixelSize: 12
-                                font.letterSpacing: 2.5
-                                font.weight: Font.Bold
-                                color: Qt.rgba(0.82, 0.88, 0.96, 0.75)
-                                style: Text.Raised
-                                styleColor: Qt.rgba(0, 0, 0, 0.75)
-                            }
-
-                            Text {
-                                text: root.gpuUsage + "%  •  " + root.gpuTemp + "°C" + (root.vramUsed > 0 ? ("  •  " + root.vramUsed.toFixed(1) + "G") : "")
-                                font.pixelSize: 34
-                                font.family: "monospace"
-                                font.weight: Font.Bold
-                                color: "#ffffff"
-                                style: Text.Raised
-                                styleColor: Qt.rgba(0, 0, 0, 0.75)
-                            }
-                        }
-                    }
-
-                    // Horizontal Hairline Divider with spacious separation
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 1
-                        color: Qt.rgba(1, 1, 1, 0.16)
-                    }
-
-                    // ROW 3: Gaming Time (Session Chrono & Total Playtime)
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 0
-
-                        // Session Chronograph (Left Column)
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 6
-
-                            Text {
-                                text: "CURRENT SESSION"
-                                font.pixelSize: 12
-                                font.letterSpacing: 2.5
-                                font.weight: Font.Bold
-                                color: Qt.rgba(0.82, 0.88, 0.96, 0.75)
-                                style: Text.Raised
-                                styleColor: Qt.rgba(0, 0, 0, 0.75)
-                            }
-
-                            Text {
-                                text: root.sessionTime
-                                font.pixelSize: 34
-                                font.family: "monospace"
-                                font.weight: Font.Bold
-                                color: "#ffffff"
-                                style: Text.Raised
-                                styleColor: Qt.rgba(0, 0, 0, 0.75)
-                            }
-                        }
-
-                        // Vertical Divider
-                        Item {
-                            Layout.preferredWidth: 80
-                            Layout.preferredHeight: 52
-
-                            Rectangle {
-                                anchors.centerIn: parent
-                                width: 1
-                                height: parent.height
-                                color: Qt.rgba(1, 1, 1, 0.22)
-                            }
-                        }
-
-                        // Total Recorded Time (Right Column)
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 6
-
-                            Text {
-                                text: "TOTAL RECORDED TIME"
-                                font.pixelSize: 12
-                                font.letterSpacing: 2.5
-                                font.weight: Font.Bold
-                                color: Qt.rgba(0.82, 0.88, 0.96, 0.75)
-                                style: Text.Raised
-                                styleColor: Qt.rgba(0, 0, 0, 0.75)
-                            }
-
-                            Text {
-                                text: root.totalTime.toUpperCase()
-                                font.pixelSize: 34
-                                font.family: "monospace"
-                                font.weight: Font.Bold
-                                color: Qt.rgba(0.92, 0.95, 1.0, 0.95)
-                                style: Text.Raised
-                                styleColor: Qt.rgba(0, 0, 0, 0.75)
-                            }
-                        }
-                    }
-
-                    // Horizontal Hairline Divider
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 1
-                        color: Qt.rgba(1, 1, 1, 0.16)
-                    }
-
-                    // ROW 4: Frame Pacing & Hardware Balance
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 0
-
-                        // Frame Pacing (Left Column)
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 6
-
-                            Text {
-                                text: "FRAME PACING"
-                                font.pixelSize: 12
-                                font.letterSpacing: 2.5
-                                font.weight: Font.Bold
-                                color: Qt.rgba(0.82, 0.88, 0.96, 0.75)
-                                style: Text.Raised
-                                styleColor: Qt.rgba(0, 0, 0, 0.75)
-                            }
-
-                            Text {
-                                text: root.insightPacing
-                                font.pixelSize: 34
-                                font.family: "monospace"
-                                font.weight: Font.Bold
-                                color: "#ffffff"
-                                style: Text.Raised
-                                styleColor: Qt.rgba(0, 0, 0, 0.75)
-                            }
-                        }
-
-                        // Vertical Divider
-                        Item {
-                            Layout.preferredWidth: 80
-                            Layout.preferredHeight: 52
-
-                            Rectangle {
-                                anchors.centerIn: parent
-                                width: 1
-                                height: parent.height
-                                color: Qt.rgba(1, 1, 1, 0.22)
-                            }
-                        }
-
-                        // Hardware Headroom (Right Column)
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 6
-
-                            Text {
-                                text: "HARDWARE HEADROOM"
-                                font.pixelSize: 12
-                                font.letterSpacing: 2.5
-                                font.weight: Font.Bold
-                                color: Qt.rgba(0.82, 0.88, 0.96, 0.75)
-                                style: Text.Raised
-                                styleColor: Qt.rgba(0, 0, 0, 0.75)
-                            }
-
-                            Text {
-                                text: root.insightHeadroom
-                                font.pixelSize: 34
-                                font.family: "monospace"
-                                font.weight: Font.Bold
-                                color: root.insightLevel === "warn" ? "#fbbf24" : "#ffffff"
-                                style: Text.Raised
-                                styleColor: Qt.rgba(0, 0, 0, 0.75)
-                            }
-                        }
-                    }
-
-                    // Technical Diagnostic Strip (Razor-flat terminal architecture, strictly anti-pill)
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 34
-                        radius: 4
-                        color: Qt.rgba(0.04, 0.05, 0.08, 0.92)
-                        border.width: 1
-                        border.color: root.insightLevel === "warn" ? Qt.rgba(0.95, 0.65, 0.20, 0.40) : Qt.rgba(1, 1, 1, 0.12)
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 16
-                            anchors.rightMargin: 16
-                            spacing: 12
-
-                            Text {
-                                text: "[SYS.DIAG]"
+                                text: "GPU & CPU TELEMETRY"
                                 font.pixelSize: 11
-                                font.letterSpacing: 1.5
+                                font.letterSpacing: 2.2
                                 font.weight: Font.Bold
-                                font.family: "monospace"
-                                color: root.insightLevel === "warn" ? "#fbbf24" : Qt.rgba(0.60, 0.70, 0.85, 0.65)
+                                color: Qt.rgba(0.75, 0.82, 0.92, 0.70)
+                                style: Text.Raised
+                                styleColor: Qt.rgba(0, 0, 0, 0.75)
                             }
 
+                            RowLayout {
+                                spacing: 8
+                                Text {
+                                    text: "GPU " + root.gpuUsage + "% • CPU " + root.cpuUsage + "%"
+                                    font.pixelSize: 26
+                                    font.family: "monospace"
+                                    font.weight: Font.Bold
+                                    color: "#ffffff"
+                                    style: Text.Raised
+                                    styleColor: Qt.rgba(0, 0, 0, 0.75)
+                                }
+                                Text {
+                                    text: "• " + root.gpuTemp + "°C"
+                                    font.pixelSize: 15
+                                    font.family: "monospace"
+                                    font.weight: Font.DemiBold
+                                    color: Qt.rgba(0.70, 0.80, 0.95, 0.60)
+                                    Layout.alignment: Qt.AlignBaseline
+                                }
+                            }
+
+                            Text {
+                                visible: root.vramUsed > 0
+                                text: root.vramUsed.toFixed(1) + " / " + root.vramTotal.toFixed(1) + " GB VRAM  •  " + root.insightHeadroom
+                                font.pixelSize: 11
+                                font.family: "monospace"
+                                font.letterSpacing: 1.0
+                                color: Qt.rgba(0.65, 0.75, 0.88, 0.65)
+                            }
+                        }
+
+                        // Vertical Divider
+                        Item {
+                            Layout.preferredWidth: 60
+                            Layout.preferredHeight: 46
+
                             Rectangle {
-                                Layout.preferredWidth: 1
-                                Layout.preferredHeight: 14
+                                anchors.centerIn: parent
+                                width: 1
+                                height: parent.height
                                 color: Qt.rgba(1, 1, 1, 0.18)
                             }
+                        }
+
+                        // Current Session & Total Playtime (Right Column)
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
 
                             Text {
-                                Layout.fillWidth: true
+                                text: "SESSION CHRONOGRAPH"
+                                font.pixelSize: 11
+                                font.letterSpacing: 2.2
+                                font.weight: Font.Bold
+                                color: Qt.rgba(0.75, 0.82, 0.92, 0.70)
+                                style: Text.Raised
+                                styleColor: Qt.rgba(0, 0, 0, 0.75)
+                            }
+
+                            RowLayout {
+                                spacing: 8
+                                Text {
+                                    text: root.sessionTime
+                                    font.pixelSize: 26
+                                    font.family: "monospace"
+                                    font.weight: Font.Bold
+                                    color: "#ffffff"
+                                    style: Text.Raised
+                                    styleColor: Qt.rgba(0, 0, 0, 0.75)
+                                }
+                                Text {
+                                    text: "• " + root.totalTime.toUpperCase()
+                                    font.pixelSize: 15
+                                    font.family: "monospace"
+                                    font.weight: Font.DemiBold
+                                    color: Qt.rgba(0.85, 0.90, 1.0, 0.70)
+                                    Layout.alignment: Qt.AlignBaseline
+                                }
+                            }
+
+                            Text {
                                 text: root.insightDiag
-                                font.pixelSize: 12
+                                font.pixelSize: 11
                                 font.family: "monospace"
-                                font.weight: Font.DemiBold
                                 font.letterSpacing: 1.0
-                                elide: Text.ElideRight
-                                color: root.insightLevel === "warn" ? "#fef08a" : Qt.rgba(0.88, 0.92, 0.98, 0.88)
+                                color: root.insightLevel === "warn" ? "#fbbf24" : Qt.rgba(0.65, 0.75, 0.88, 0.65)
                             }
                         }
                     }
