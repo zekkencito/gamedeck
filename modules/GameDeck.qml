@@ -38,9 +38,10 @@ Item {
     property int gameFps: 0
     property real frameTime: 0
     property bool hasFps: false
-    property string insightStatus: "SISTEMA ESTABLE"
-    property string insightMessage: "Iniciando monitoreo de rendimiento..."
-    property string insightType: "good"
+    property string insightPacing: "STABLE"
+    property string insightHeadroom: "BALANCED"
+    property string insightDiag: "SYSTEM NOMINAL"
+    property string insightLevel: "normal"
 
     // Media Player Integration (MPRIS)
     property bool mediaActive: false
@@ -166,9 +167,10 @@ Item {
                             root.frameTime = t.frametime ?? 0;
                             root.hasFps = (t.fps !== undefined && t.fps !== null && t.fps > 0);
                             if (t.insight) {
-                                root.insightStatus = t.insight.status || root.insightStatus;
-                                root.insightMessage = t.insight.message || root.insightMessage;
-                                root.insightType = t.insight.type || root.insightType;
+                                root.insightPacing = t.insight.pacing || "STABLE";
+                                root.insightHeadroom = t.insight.headroom || "BALANCED";
+                                root.insightDiag = t.insight.diag || "SYSTEM NOMINAL";
+                                root.insightLevel = t.insight.level || "normal";
                             }
                         }
                     } else {
@@ -465,11 +467,11 @@ Item {
             Item {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: Math.min(parent.width * 0.90, 840)
-                Layout.preferredHeight: 380
+                Layout.preferredHeight: 450
 
                 ColumnLayout {
                     anchors.fill: parent
-                    spacing: 24
+                    spacing: 22
 
                     // ROW 1: Real-Time FPS & System Power Draw
                     RowLayout {
@@ -728,74 +730,116 @@ Item {
                         color: Qt.rgba(1, 1, 1, 0.16)
                     }
 
-                    // ROW 4: Minimalist Performance Insight Capsule
+                    // ROW 4: Frame Pacing & Hardware Balance
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 0
+
+                        // Frame Pacing (Left Column)
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
+
+                            Text {
+                                text: "FRAME PACING"
+                                font.pixelSize: 12
+                                font.letterSpacing: 2.5
+                                font.weight: Font.Bold
+                                color: Qt.rgba(0.82, 0.88, 0.96, 0.75)
+                                style: Text.Raised
+                                styleColor: Qt.rgba(0, 0, 0, 0.75)
+                            }
+
+                            Text {
+                                text: root.insightPacing
+                                font.pixelSize: 34
+                                font.family: "monospace"
+                                font.weight: Font.Bold
+                                color: "#ffffff"
+                                style: Text.Raised
+                                styleColor: Qt.rgba(0, 0, 0, 0.75)
+                            }
+                        }
+
+                        // Vertical Divider
+                        Item {
+                            Layout.preferredWidth: 80
+                            Layout.preferredHeight: 52
+
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: 1
+                                height: parent.height
+                                color: Qt.rgba(1, 1, 1, 0.22)
+                            }
+                        }
+
+                        // Hardware Headroom (Right Column)
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
+
+                            Text {
+                                text: "HARDWARE HEADROOM"
+                                font.pixelSize: 12
+                                font.letterSpacing: 2.5
+                                font.weight: Font.Bold
+                                color: Qt.rgba(0.82, 0.88, 0.96, 0.75)
+                                style: Text.Raised
+                                styleColor: Qt.rgba(0, 0, 0, 0.75)
+                            }
+
+                            Text {
+                                text: root.insightHeadroom
+                                font.pixelSize: 34
+                                font.family: "monospace"
+                                font.weight: Font.Bold
+                                color: root.insightLevel === "warn" ? "#fbbf24" : "#ffffff"
+                                style: Text.Raised
+                                styleColor: Qt.rgba(0, 0, 0, 0.75)
+                            }
+                        }
+                    }
+
+                    // Technical Diagnostic Strip (Razor-flat terminal architecture, strictly anti-pill)
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 44
-                        radius: 22
-                        color: Qt.rgba(0.04, 0.05, 0.08, 0.85)
+                        Layout.preferredHeight: 34
+                        radius: 4
+                        color: Qt.rgba(0.04, 0.05, 0.08, 0.92)
                         border.width: 1
-                        border.color: {
-                            if (root.insightType === "optimal") return Qt.rgba(0.20, 0.82, 0.60, 0.40);
-                            if (root.insightType === "good") return Qt.rgba(0.22, 0.65, 0.95, 0.40);
-                            if (root.insightType === "caution") return Qt.rgba(0.95, 0.65, 0.20, 0.40);
-                            return Qt.rgba(0.95, 0.35, 0.35, 0.40);
-                        }
+                        border.color: root.insightLevel === "warn" ? Qt.rgba(0.95, 0.65, 0.20, 0.40) : Qt.rgba(1, 1, 1, 0.12)
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.leftMargin: 20
-                            anchors.rightMargin: 20
+                            anchors.leftMargin: 16
+                            anchors.rightMargin: 16
                             spacing: 12
 
-                            // Pulsing status LED dot
-                            Rectangle {
-                                Layout.preferredWidth: 8
-                                Layout.preferredHeight: 8
-                                radius: 4
-                                color: {
-                                    if (root.insightType === "optimal") return "#34d399";
-                                    if (root.insightType === "good") return "#38bdf8";
-                                    if (root.insightType === "caution") return "#fbbf24";
-                                    return "#f87171";
-                                }
-
-                                SequentialAnimation on opacity {
-                                    loops: Animation.Infinite
-                                    NumberAnimation { to: 0.35; duration: 900; easing.type: Easing.InOutQuad }
-                                    NumberAnimation { to: 1.0; duration: 900; easing.type: Easing.InOutQuad }
-                                }
-                            }
-
-                            // Monospace Status Tag
                             Text {
-                                text: root.insightStatus
+                                text: "[SYS.DIAG]"
                                 font.pixelSize: 11
-                                font.letterSpacing: 2.0
+                                font.letterSpacing: 1.5
                                 font.weight: Font.Bold
                                 font.family: "monospace"
-                                color: {
-                                    if (root.insightType === "optimal") return "#34d399";
-                                    if (root.insightType === "good") return "#38bdf8";
-                                    if (root.insightType === "caution") return "#fbbf24";
-                                    return "#f87171";
-                                }
+                                color: root.insightLevel === "warn" ? "#fbbf24" : Qt.rgba(0.60, 0.70, 0.85, 0.65)
                             }
 
-                            Text {
-                                text: "•"
-                                font.pixelSize: 12
-                                color: Qt.rgba(1, 1, 1, 0.25)
+                            Rectangle {
+                                Layout.preferredWidth: 1
+                                Layout.preferredHeight: 14
+                                color: Qt.rgba(1, 1, 1, 0.18)
                             }
 
-                            // Dynamic Evaluator & Optimization Recommendation
                             Text {
                                 Layout.fillWidth: true
-                                text: root.insightMessage
-                                font.pixelSize: 13
-                                font.weight: Font.Medium
+                                text: root.insightDiag
+                                font.pixelSize: 12
+                                font.family: "monospace"
+                                font.weight: Font.DemiBold
+                                font.letterSpacing: 1.0
                                 elide: Text.ElideRight
-                                color: Qt.rgba(0.90, 0.94, 1.0, 0.92)
+                                color: root.insightLevel === "warn" ? "#fef08a" : Qt.rgba(0.88, 0.92, 0.98, 0.88)
                             }
                         }
                     }

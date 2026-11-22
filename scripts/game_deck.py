@@ -247,79 +247,66 @@ def cleanup_mangohud_logs():
 def evaluate_performance(fps, frametime, gpu_load, gpu_temp, gpu_watts, cpu_load, cpu_temp, cpu_watts, vram_used, vram_total):
     total_watts = int(round((gpu_watts or 0) + (cpu_watts or 0)))
     
-    # 1. Thermal alert
     if gpu_temp >= 85 or cpu_temp >= 90:
         return {
-            "status": "AVISO TÉRMICO",
-            "message": f"Temperaturas altas (GPU {gpu_temp}°C, CPU {cpu_temp}°C). Revisa refrigeración.",
-            "type": "warning"
-        }
-        
-    # 2. VRAM alert
-    if vram_total > 0 and vram_used > 0 and (vram_used / vram_total) >= 0.92:
-        pct = int((vram_used / vram_total) * 100)
-        return {
-            "status": "VRAM AL LÍMITE",
-            "message": f"VRAM al {pct}% ({vram_used:.1f}/{vram_total:.1f} GB). Baja calidad de texturas.",
-            "type": "caution"
+            "pacing": "THROTTLED",
+            "headroom": "THERMAL LIMIT",
+            "diag": f"HIGH TEMP DETECTED (GPU {gpu_temp}°C / CPU {cpu_temp}°C)",
+            "level": "warn"
         }
 
-    # 3. FPS / MangoHud evaluation
-    if fps is not None and fps > 0:
-        if fps >= 120:
-            if gpu_load >= 88:
-                return {
-                    "status": "RENDIMIENTO ÓPTIMO",
-                    "message": f"{fps} FPS estables • {total_watts}W consumo • GPU al {gpu_load}%",
-                    "type": "optimal"
-                }
-            return {
-                "status": "RENDIMIENTO IMPECABLE",
-                "message": f"{fps} FPS ({frametime}ms) • Sistema con holgura térmica y {total_watts}W",
-                "type": "optimal"
-            }
-        elif fps >= 60:
-            if gpu_load >= 96:
-                return {
-                    "status": "GPU BOUND",
-                    "message": f"{fps} FPS fluidos • GPU al {gpu_load}%. DLSS o FSR daría más margen de FPS.",
-                    "type": "good"
-                }
-            elif cpu_load >= 85:
-                return {
-                    "status": "CUELLO DE BOTELLA CPU",
-                    "message": f"{fps} FPS • Carga de CPU elevada ({cpu_load}%). Limita FPS o baja físicas.",
-                    "type": "caution"
-                }
-            return {
-                "status": "FLUIDO Y ESTABLE",
-                "message": f"{fps} FPS ({frametime}ms) • Consumo balanceado de {total_watts}W",
-                "type": "good"
-            }
-        else: # < 60 FPS
-            if gpu_load >= 95:
-                return {
-                    "status": "GPU SATURADA",
-                    "message": f"{fps} FPS ({frametime}ms) • GPU al {gpu_load}%. Activa Frame Gen o baja sombras.",
-                    "type": "caution"
-                }
-            return {
-                "status": "AJUSTE RECOMENDADO",
-                "message": f"{fps} FPS ({frametime}ms) • Considera optimizar resolución o escalado.",
-                "type": "caution"
-            }
-            
-    # Fallback sin MangoHud
-    if gpu_load >= 90:
+    if vram_total > 0 and vram_used > 0 and (vram_used / vram_total) >= 0.92:
         return {
-            "status": "GPU AL MÁXIMO",
-            "message": f"Carga GPU al {gpu_load}% • {gpu_temp}°C • Consumo total {total_watts}W",
-            "type": "optimal"
+            "pacing": "VRAM PEAK",
+            "headroom": f"{vram_used:.1f}G / {vram_total:.1f}G",
+            "diag": "VRAM REACHING CAPACITY — REDUCE TEXTURE RESOLUTION",
+            "level": "warn"
         }
+
+    if fps is not None and fps > 0:
+        if frametime is not None and frametime > 0:
+            if frametime <= 12.0:
+                pacing = f"SMOOTH • {frametime:.1f}MS"
+            elif frametime <= 18.0:
+                pacing = f"STABLE • {frametime:.1f}MS"
+            elif frametime <= 25.0:
+                pacing = f"PLAYABLE • {frametime:.1f}MS"
+            else:
+                pacing = f"JITTER • {frametime:.1f}MS"
+        else:
+            pacing = f"{fps} FPS"
+
+        if gpu_load >= 92:
+            headroom = f"GPU BOUND ({gpu_load}%)"
+            if fps < 50:
+                diag = "GPU SATURATED — LOWER SHADOWS OR ENABLE DLSS"
+                level = "warn"
+            else:
+                diag = f"FULL GPU SATURATION • {total_watts}W TOTAL POWER"
+                level = "normal"
+        elif cpu_load >= 85:
+            headroom = f"CPU BOUND ({cpu_load}%)"
+            diag = "CPU BOTTLENECK DETECTED — REDUCE BACKGROUND LOAD"
+            level = "warn"
+        else:
+            headroom = f"BALANCED ({gpu_load}% GPU)"
+            diag = f"{fps} FPS ACTIVE • {total_watts}W TOTAL POWER"
+            level = "normal"
+    else:
+        if gpu_load >= 90:
+            headroom = f"GPU ACTIVE ({gpu_load}%)"
+            diag = f"HIGH GPU UTILIZATION • {gpu_temp}°C • {total_watts}W"
+        else:
+            headroom = f"NORMAL ({gpu_load}%)"
+            diag = f"HARDWARE NOMINAL • {total_watts}W COMBINED DRAW"
+        pacing = "ACTIVE"
+        level = "normal"
+
     return {
-        "status": "SISTEMA ESTABLE",
-        "message": f"Consumo total {total_watts}W (GPU {int(gpu_watts)}W • CPU {int(cpu_watts)}W) • {gpu_temp}°C",
-        "type": "good"
+        "pacing": pacing,
+        "headroom": headroom,
+        "diag": diag,
+        "level": level
     }
 
 cached_telemetry = {
@@ -327,7 +314,12 @@ cached_telemetry = {
     "gpuUsage": 0, "gpuTemp": 0, "gpuWatts": 0.0, "totalWatts": 0.0,
     "vramUsed": 0.0, "vramTotal": 8.0,
     "fps": None, "frametime": None, "hasMangoHud": False,
-    "insight": {"status": "SISTEMA ESTABLE", "message": "Iniciando telemetría", "type": "good"}
+    "insight": {
+        "pacing": "STANDBY",
+        "headroom": "NOMINAL",
+        "diag": "INITIALIZING TELEMETRY STREAM",
+        "level": "normal"
+    }
 }
 cached_media = None
 last_media_check = 0
