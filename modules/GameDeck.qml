@@ -31,6 +31,38 @@ Item {
     property int gpuUsage: 0
     property int gpuTemp: 0
 
+    // Media Player Integration (MPRIS)
+    property bool mediaActive: false
+    property string mediaStatus: "Paused"
+    property string mediaTitle: ""
+    property string mediaArtist: ""
+    property string mediaArtUrl: ""
+
+    // Continuous media watcher (Instant playerctl event-driven stream, 0ms latency)
+    Process {
+        id: mediaStreamProcess
+        command: ["playerctl", "--follow", "metadata", "--format", "{\"status\":\"{{status}}\",\"title\":\"{{markup_escape(title)}}\",\"artist\":\"{{markup_escape(artist)}}\",\"album\":\"{{markup_escape(album)}}\",\"artUrl\":\"{{mpris:artUrl}}\"}"]
+        running: true
+        stdout: SplitParser {
+            onRead: line => {
+                const text = line.trim();
+                if (!text) return;
+                try {
+                    const d = JSON.parse(text);
+                    if (d.status === "Playing" || d.status === "Paused") {
+                        root.mediaActive = true;
+                        root.mediaStatus = d.status;
+                        root.mediaTitle = d.title || "";
+                        root.mediaArtist = d.artist || d.album || "";
+                        root.mediaArtUrl = d.artUrl || "";
+                    } else {
+                        root.mediaActive = false;
+                    }
+                } catch(e) {}
+            }
+        }
+    }
+
     // 3-Zone Ambient LED Light Colors (Sampled from HDMI-A-1)
     property color ambientLeft: "#4457af"
     property color ambientCenter: "#4457af"
@@ -301,6 +333,14 @@ Item {
                     height: heroCard.height + 300
                     z: 0
 
+                    // Organic breathing pulse
+                    SequentialAnimation on opacity {
+                        loops: Animation.Infinite
+                        running: root.gameActive && !root.isClosed
+                        NumberAnimation { from: 0.55; to: 1.0; duration: 2400; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 1.0; to: 0.55; duration: 2400; easing.type: Easing.InOutSine }
+                    }
+
                     // 1. Core Light Bloom (Intense base glow directly behind the card)
                     Rectangle {
                         anchors.centerIn: parent
@@ -551,6 +591,234 @@ Item {
                                 color: Qt.rgba(0.92, 0.95, 1.0, 0.95)
                                 style: Text.Raised
                                 styleColor: Qt.rgba(0, 0, 0, 0.75)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Espaciador para bajar la pastilla de musica
+            Item {
+                Layout.preferredHeight: 48
+                visible: root.mediaActive
+            }
+
+            // --- PREMIUM HAPTIC MEDIA DOCK (Machined Nested Pill, Pure Visual Clarity) ---
+            Item {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: Math.min(parent.width * 0.90, 840)
+                Layout.preferredHeight: 76
+                visible: root.mediaActive
+                opacity: root.mediaActive ? 1.0 : 0.0
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+                }
+
+                // Outer machined tray (Double bezel architecture)
+                Rectangle {
+                    anchors.fill: parent
+                    radius: 38
+                    color: Qt.rgba(0.04, 0.05, 0.08, 0.92)
+                    border.width: 1
+                    border.color: Qt.rgba(1, 1, 1, 0.12)
+
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true
+                        shadowColor: Qt.rgba(0, 0, 0, 0.55)
+                        shadowBlur: 0.6
+                        shadowVerticalOffset: 6
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 16
+                        spacing: 14
+
+                        // Album Artwork Capsule
+                        Rectangle {
+                            Layout.preferredWidth: 52
+                            Layout.preferredHeight: 52
+                            radius: 26
+                            color: "#181a22"
+                            clip: true
+                            border.width: 1
+                            border.color: Qt.rgba(1, 1, 1, 0.14)
+
+                            Image {
+                                anchors.fill: parent
+                                source: root.mediaArtUrl
+                                fillMode: Image.PreserveAspectCrop
+                                asynchronous: true
+                                smooth: true
+                            }
+                        }
+
+                        // Track Details
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 3
+
+                            Text {
+                                text: root.mediaTitle
+                                font.pixelSize: 14
+                                font.bold: true
+                                font.letterSpacing: 0.2
+                                color: "#ffffff"
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+
+                            Text {
+                                text: root.mediaArtist
+                                font.pixelSize: 11
+                                font.letterSpacing: 0.5
+                                color: Qt.rgba(0.85, 0.90, 1.0, 0.60)
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+                        }
+
+                        // Transport Controls
+                        RowLayout {
+                            spacing: 10
+
+                            // Previous
+                            Rectangle {
+                                id: prevBtn
+                                Layout.preferredWidth: 36
+                                Layout.preferredHeight: 36
+                                radius: 18
+                                color: prevArea.containsMouse ? (prevArea.pressed ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(1, 1, 1, 0.12)) : Qt.rgba(1, 1, 1, 0.06)
+                                border.width: 1
+                                border.color: Qt.rgba(1, 1, 1, 0.10)
+                                scale: prevArea.pressed ? 0.92 : 1.0
+                                Behavior on scale { NumberAnimation { duration: 80 } }
+                                Behavior on color { ColorAnimation { duration: 120 } }
+
+                                Canvas {
+                                    anchors.centerIn: parent
+                                    width: 12
+                                    height: 12
+                                    onPaint: {
+                                        const ctx = getContext("2d");
+                                        ctx.reset();
+                                        ctx.fillStyle = "#ffffff";
+                                        // Bar
+                                        ctx.fillRect(0, 1, 2, 10);
+                                        // Left arrow
+                                        ctx.beginPath();
+                                        ctx.moveTo(12, 1);
+                                        ctx.lineTo(3, 6);
+                                        ctx.lineTo(12, 11);
+                                        ctx.closePath();
+                                        ctx.fill();
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: prevArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: Quickshell.execDetached(["playerctl", "previous"])
+                                }
+                            }
+
+                            // Play / Pause (Hero CTA Button)
+                            Rectangle {
+                                id: playBtn
+                                Layout.preferredWidth: 44
+                                Layout.preferredHeight: 44
+                                radius: 22
+                                color: playArea.containsMouse ? (playArea.pressed ? "#e2e6f0" : "#ffffff") : "#f4f6fb"
+                                scale: playArea.pressed ? 0.88 : 1.0
+                                Behavior on scale { NumberAnimation { duration: 80 } }
+                                Behavior on color { ColorAnimation { duration: 120 } }
+
+                                Canvas {
+                                    id: playCanvas
+                                    anchors.centerIn: parent
+                                    anchors.horizontalCenterOffset: root.mediaStatus === "Playing" ? 0 : 1
+                                    width: 14
+                                    height: 14
+
+                                    Connections {
+                                        target: root
+                                        function onMediaStatusChanged() { playCanvas.requestPaint(); }
+                                    }
+
+                                    onPaint: {
+                                        const ctx = getContext("2d");
+                                        ctx.reset();
+                                        ctx.fillStyle = "#0c0d12";
+                                        if (root.mediaStatus === "Playing") {
+                                            ctx.fillRect(1, 1, 3.5, 12);
+                                            ctx.fillRect(8.5, 1, 3.5, 12);
+                                        } else {
+                                            ctx.beginPath();
+                                            ctx.moveTo(2, 0);
+                                            ctx.lineTo(13, 7);
+                                            ctx.lineTo(2, 14);
+                                            ctx.closePath();
+                                            ctx.fill();
+                                        }
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: playArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        Quickshell.execDetached(["playerctl", "play-pause"]);
+                                    }
+                                }
+                            }
+
+                            // Next
+                            Rectangle {
+                                id: nextBtn
+                                Layout.preferredWidth: 36
+                                Layout.preferredHeight: 36
+                                radius: 18
+                                color: nextArea.containsMouse ? (nextArea.pressed ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(1, 1, 1, 0.12)) : Qt.rgba(1, 1, 1, 0.06)
+                                border.width: 1
+                                border.color: Qt.rgba(1, 1, 1, 0.10)
+                                scale: nextArea.pressed ? 0.92 : 1.0
+                                Behavior on scale { NumberAnimation { duration: 80 } }
+                                Behavior on color { ColorAnimation { duration: 120 } }
+
+                                Canvas {
+                                    anchors.centerIn: parent
+                                    width: 12
+                                    height: 12
+                                    onPaint: {
+                                        const ctx = getContext("2d");
+                                        ctx.reset();
+                                        ctx.fillStyle = "#ffffff";
+                                        // Right arrow
+                                        ctx.beginPath();
+                                        ctx.moveTo(0, 1);
+                                        ctx.lineTo(9, 6);
+                                        ctx.lineTo(0, 11);
+                                        ctx.closePath();
+                                        ctx.fill();
+                                        // Bar
+                                        ctx.fillRect(10, 1, 2, 10);
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: nextArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: Quickshell.execDetached(["playerctl", "next"])
+                                }
                             }
                         }
                     }

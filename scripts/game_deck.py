@@ -7,8 +7,7 @@ import os
 import sys
 import re
 
-SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-GAMES_CACHE_PATH = os.path.join(SCRIPT_DIR, "games.py")
+GAMES_CACHE_PATH = "/home/renzo/.config/quickshell/caelestia/scripts/games.py"
 OUTPUT_STATE_PATH = "/tmp/caelestia_gamedeck.json"
 SESSION_TRACK_PATH = "/tmp/caelestia_gamedeck_session.json"
 
@@ -33,7 +32,8 @@ IGNORED_CLASSES = {
     "foot", "kitty", "alacritty", "konsole", "xterm",
     "org.kde.dolphin", "dolphin", "thunar", "nemo", "nautilus",
     "code", "vscodium", "sublime_text", "org.kde.kate", "gedit",
-    "discord", "vesktop", "spotify", "slack", "telegram-desktop"
+    "discord", "vesktop", "spotify", "slack", "telegram-desktop",
+    "youtube-music-desktop-app", "com.github.th-ch.youtube-music", "feishin", "supersonic", "plexamp"
 }
 
 def find_active_game():
@@ -79,34 +79,69 @@ def find_active_game():
 
     return None, None
 
-def get_ambient_colors(monitor="HDMI-A-1"):
+ambient_cache = {}
+
+def get_cover_ambient_colors(cover_path):
+    if not cover_path or not os.path.exists(cover_path):
+        return {"left": "#c07050", "center": "#c05050", "right": "#c04060"}
+    
+    if cover_path in ambient_cache:
+        return ambient_cache[cover_path]
+
     try:
         from PIL import Image
-        p = subprocess.run(["grim", "-o", monitor, "-s", "0.01", "-"], capture_output=True, timeout=1.5)
-        if not p.stdout:
-            return {"left": "#63452f", "center": "#956b44", "right": "#ad8956"}
-        img = Image.open(io.BytesIO(p.stdout)).convert("RGB")
-        resized = img.resize((3, 1), Image.Resampling.BILINEAR)
+        img = Image.open(cover_path).convert("RGB")
+        w, h = img.size
 
-        def norm_rgb(c, target_bright=175):
-            r, g, b = c
-            m = max(r, g, b)
-            if m == 0:
-                return 80, 80, 80
-            scale = max(1.0, target_bright / m)
-            return min(255, int(r * scale)), min(255, int(g * scale)), min(255, int(b * scale))
+        # Extract saturated perimeter colors, ignoring text / white highlights
+        def extract_edge_color(crop_box):
+            crop = img.crop(crop_box)
+            # Use small thumbnail for fast analysis
+            crop.thumbnail((48, 48), Image.Resampling.BOX)
+            try:
+                pixels = list(crop.get_flattened_data())
+            except AttributeError:
+                pixels = list(crop.getdata())
+            
+            scored = []
+            for pixel in pixels:
+                r, g, b = pixel[:3]
+                max_c = max(r, g, b)
+                min_c = min(r, g, b)
+                sat = (max_c - min_c) / max(max_c, 1)
+                # Filter out pure whites (text), grey washed pixels and pitch darks
+                if min_c > 200 or max_c < 30:
+                    continue
+                # Weight by saturation and luminance
+                score = sat * (max_c / 255.0)
+                scored.append((score, (r, g, b)))
+            
+            if scored:
+                scored.sort(reverse=True)
+                top = [c for s, c in scored[:max(1, len(scored) // 6)]]
+                avg_r = sum(c[0] for c in top) // len(top)
+                avg_g = sum(c[1] for c in top) // len(top)
+                avg_b = sum(c[2] for c in top) // len(top)
+                # Boost brightness for clean backlight glow
+                m = max(avg_r, avg_g, avg_b, 1)
+                scale = max(1.0, 205 / m)
+                return f"#{min(255, int(avg_r * scale)):02x}{min(255, int(avg_g * scale)):02x}{min(255, int(avg_b * scale)):02x}"
+            return "#c05050"
 
-        cl = norm_rgb(resized.getpixel((0, 0)))
-        cc = norm_rgb(resized.getpixel((1, 0)))
-        cr = norm_rgb(resized.getpixel((2, 0)))
+        # 15% edge strips for perimeter matching
+        left_color = extract_edge_color((0, 0, max(1, int(w * 0.18)), h))
+        center_color = extract_edge_color((max(0, int(w * 0.25)), 0, min(w, int(w * 0.75)), h))
+        right_color = extract_edge_color((max(0, int(w * 0.82)), 0, w, h))
 
-        return {
-            "left": f"#{cl[0]:02x}{cl[1]:02x}{cl[2]:02x}",
-            "center": f"#{cc[0]:02x}{cc[1]:02x}{cc[2]:02x}",
-            "right": f"#{cr[0]:02x}{cr[1]:02x}{cr[2]:02x}"
+        cols = {
+            "left": left_color,
+            "center": center_color,
+            "right": right_color
         }
+        ambient_cache[cover_path] = cols
+        return cols
     except Exception:
-        return {"left": "#63452f", "center": "#956b44", "right": "#ad8956"}
+        return {"left": "#c07050", "center": "#c05050", "right": "#c04060"}
 
 def format_time(seconds):
     hrs = int(seconds // 3600)
@@ -137,6 +172,38 @@ def read_cpu_stat():
         return 0, 0
 
 cached_telemetry = {"cpuUsage": 0, "cpuTemp": 0, "gpuUsage": 0, "gpuTemp": 0}
+cached_media = None
+last_media_check = 0
+
+def update_media():
+    global cached_media
+    try:
+        p = subprocess.run([
+            "playerctl", "metadata", "--format",
+            json.dumps({
+                "status": "{{status}}",
+                "title": "{{title}}",
+                "artist": "{{artist}}",
+                "album": "{{album}}",
+                "artUrl": "{{mpris:artUrl}}"
+            })
+        ], capture_output=True, text=True, timeout=0.8)
+        
+        if p.returncode == 0 and p.stdout.strip():
+            raw = json.loads(p.stdout.strip())
+            if raw.get("status") in ("Playing", "Paused") and raw.get("title"):
+                cached_media = {
+                    "active": True,
+                    "status": raw.get("status"),
+                    "title": raw.get("title", ""),
+                    "artist": raw.get("artist", "") or raw.get("album", ""),
+                    "artUrl": raw.get("artUrl", "")
+                }
+                return cached_media
+    except Exception:
+        pass
+    cached_media = {"active": False}
+    return cached_media
 last_cpu_idle, last_cpu_total = read_cpu_stat()
 
 def update_telemetry():
@@ -189,6 +256,7 @@ def update_telemetry():
 def stream_loop():
     last_game_check = 0
     last_telem_check = 0
+    last_media_check = 0
     game = None
     client = None
     
@@ -218,11 +286,15 @@ def stream_loop():
             update_telemetry()
             last_telem_check = now
 
+        if now - last_media_check >= 1.5:
+            update_media()
+            last_media_check = now
+
         client_pid = client.get("pid") if client else None
         proc_uptime = get_process_uptime(client_pid)
         session_dur = proc_uptime if (proc_uptime is not None and proc_uptime > 0) else 0
         
-        ambient = get_ambient_colors("HDMI-A-1")
+        ambient = get_cover_ambient_colors(game.get("cover", ""))
         
         total_play = game.get("playtime", 0.0)
         total_str = f"{total_play:.1f} hrs" if total_play > 0 else "Primera vez"
@@ -236,7 +308,8 @@ def stream_loop():
             "sessionFormatted": format_time(session_dur),
             "totalPlaytime": total_str,
             "ambient": ambient,
-            "telemetry": cached_telemetry
+            "telemetry": cached_telemetry,
+            "media": cached_media or {"active": False}
         }
         try:
             print(json.dumps(msg), flush=True)
@@ -296,8 +369,9 @@ def update_tick():
     else:
         session_dur = max(0, now - start_time)
         
-    ambient = get_ambient_colors("HDMI-A-1")
+    ambient = get_cover_ambient_colors(game.get("cover", ""))
     telem = update_telemetry()
+    media = update_media()
     
     total_play = game.get("playtime", 0.0)
     total_str = f"{total_play:.1f} hrs" if total_play > 0 else "Primera vez"
@@ -311,7 +385,8 @@ def update_tick():
         "sessionFormatted": format_time(session_dur),
         "totalPlaytime": total_str,
         "ambient": ambient,
-        "telemetry": telem
+        "telemetry": telem,
+        "media": media
     }
     
     with open(OUTPUT_STATE_PATH + ".tmp", "w") as f:

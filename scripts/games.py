@@ -67,7 +67,7 @@ def fmt_float(value):
         return 0.0
 
 
-# ---------------------------------------------------------------- Steam ----
+# Steam
 def read_steam():
     games = []
     try:
@@ -117,7 +117,7 @@ def read_steam():
     return games
 
 
-# ---------------------------------------------------------------- Lutris ---
+# Lutris
 def read_lutris():
     games = []
     db_path = os.path.join(LUTRIS_ROOT, "pga.db")
@@ -168,7 +168,7 @@ def read_lutris():
     return games
 
 
-# ---------------------------------------------------------------- Heroic ---
+# Heroic
 def read_heroic():
     games = []
     try:
@@ -247,7 +247,7 @@ def _heroic_installed(rel_path):
         return set()
 
 
-# ---------------------------------------------------------------- Quiver ---
+# Quiver
 QUIVER_CONFIG = os.path.join(HOME, ".local/share/com.quiverlauncher.app")
 PORTS_DIR = os.path.join(HOME, "Disco Games/Games/Ports")
 
@@ -298,7 +298,7 @@ def read_quiver():
     return games
 
 
-# ---------------------------------------------------------------- Merge ----
+# Merge
 def merge(steam, lutris, heroic, quiver=()):
     result = list(lutris)
     steam_appids = {g["id"].split("-", 1)[1] for g in steam}

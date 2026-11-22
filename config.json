@@ -1,0 +1,14 @@
+{
+  "target_screen": "auto",
+  "screen_filter": ["DP-3", "arzopa"],
+  "telemetry": {
+    "poll_interval_sec": 1.2,
+    "game_check_interval_sec": 2.0,
+    "cpu_sensor_patterns": ["Tctl:\\s+\\+([0-9\\.]+)°C", "temp1:\\s+\\+([0-9\\.]+)°C", "Package id 0:\\s+\\+([0-9\\.]+)°C"]
+  },
+  "library_paths": {
+    "steam": "~/.local/share/Steam",
+    "lutris": "~/.local/share/lutris",
+    "heroic": "~/.config/heroic"
+  }
+}
