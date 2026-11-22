@@ -171,7 +171,164 @@ def read_cpu_stat():
     except Exception:
         return 0, 0
 
-cached_telemetry = {"cpuUsage": 0, "cpuTemp": 0, "gpuUsage": 0, "gpuTemp": 0}
+last_rapl_energy = 0
+last_rapl_time = 0
+
+def get_cpu_watts():
+    global last_rapl_energy, last_rapl_time
+    now = time.time()
+    try:
+        with open("/sys/class/powercap/intel-rapl:0/energy_uj") as f:
+            e = int(f.read().strip())
+        if last_rapl_energy > 0 and now > last_rapl_time:
+            dt = now - last_rapl_time
+            if dt > 0.15:
+                w = (e - last_rapl_energy) / (dt * 1e6)
+                last_rapl_energy, last_rapl_time = e, now
+                return round(w, 1)
+        else:
+            last_rapl_energy, last_rapl_time = e, now
+    except Exception:
+        pass
+    return 0.0
+
+def get_mangohud_stats():
+    log_dir = "/dev/shm/mangologs"
+    if not os.path.exists(log_dir):
+        return None
+    try:
+        files = [os.path.join(log_dir, f) for f in os.listdir(log_dir) if f.endswith(".csv") and not f.endswith("_summary.csv")]
+        if not files:
+            return None
+        newest = max(files, key=os.path.getmtime)
+        if time.time() - os.path.getmtime(newest) > 5.0:
+            return None
+        with open(newest, "r") as f:
+            lines = [l.strip() for l in f if l.strip()]
+        header_idx = -1
+        for i, l in enumerate(lines):
+            if l.startswith("fps,"):
+                header_idx = i
+                break
+        if header_idx != -1 and len(lines) > header_idx + 1:
+            headers = [h.strip() for h in lines[header_idx].split(",")]
+            vals = [v.strip() for v in lines[-1].split(",")]
+            if len(headers) == len(vals):
+                d = dict(zip(headers, vals))
+                fps_val = float(d.get("fps", 0))
+                ft_val = float(d.get("frametime", 0))
+                gp_val = float(d.get("gpu_power", 0))
+                cp_val = float(d.get("cpu_power", 0))
+                vram_val = float(d.get("gpu_vram_used", 0))
+                return {
+                    "fps": int(round(fps_val)),
+                    "frametime": round(ft_val, 1),
+                    "gpuWatts": round(gp_val, 1),
+                    "cpuWatts": round(cp_val, 1),
+                    "vramUsed": round(vram_val, 1)
+                }
+    except Exception:
+        pass
+    return None
+
+def cleanup_mangohud_logs():
+    log_dir = "/dev/shm/mangologs"
+    if os.path.exists(log_dir):
+        try:
+            for f in os.listdir(log_dir):
+                if f.endswith(".csv"):
+                    try:
+                        os.remove(os.path.join(log_dir, f))
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+def evaluate_performance(fps, frametime, gpu_load, gpu_temp, gpu_watts, cpu_load, cpu_temp, cpu_watts, vram_used, vram_total):
+    total_watts = int(round((gpu_watts or 0) + (cpu_watts or 0)))
+    
+    # 1. Thermal alert
+    if gpu_temp >= 85 or cpu_temp >= 90:
+        return {
+            "status": "AVISO TÉRMICO",
+            "message": f"Temperaturas altas (GPU {gpu_temp}°C, CPU {cpu_temp}°C). Revisa refrigeración.",
+            "type": "warning"
+        }
+        
+    # 2. VRAM alert
+    if vram_total > 0 and vram_used > 0 and (vram_used / vram_total) >= 0.92:
+        pct = int((vram_used / vram_total) * 100)
+        return {
+            "status": "VRAM AL LÍMITE",
+            "message": f"VRAM al {pct}% ({vram_used:.1f}/{vram_total:.1f} GB). Baja calidad de texturas.",
+            "type": "caution"
+        }
+
+    # 3. FPS / MangoHud evaluation
+    if fps is not None and fps > 0:
+        if fps >= 120:
+            if gpu_load >= 88:
+                return {
+                    "status": "RENDIMIENTO ÓPTIMO",
+                    "message": f"{fps} FPS estables • {total_watts}W consumo • GPU al {gpu_load}%",
+                    "type": "optimal"
+                }
+            return {
+                "status": "RENDIMIENTO IMPECABLE",
+                "message": f"{fps} FPS ({frametime}ms) • Sistema con holgura térmica y {total_watts}W",
+                "type": "optimal"
+            }
+        elif fps >= 60:
+            if gpu_load >= 96:
+                return {
+                    "status": "GPU BOUND",
+                    "message": f"{fps} FPS fluidos • GPU al {gpu_load}%. DLSS o FSR daría más margen de FPS.",
+                    "type": "good"
+                }
+            elif cpu_load >= 85:
+                return {
+                    "status": "CUELLO DE BOTELLA CPU",
+                    "message": f"{fps} FPS • Carga de CPU elevada ({cpu_load}%). Limita FPS o baja físicas.",
+                    "type": "caution"
+                }
+            return {
+                "status": "FLUIDO Y ESTABLE",
+                "message": f"{fps} FPS ({frametime}ms) • Consumo balanceado de {total_watts}W",
+                "type": "good"
+            }
+        else: # < 60 FPS
+            if gpu_load >= 95:
+                return {
+                    "status": "GPU SATURADA",
+                    "message": f"{fps} FPS ({frametime}ms) • GPU al {gpu_load}%. Activa Frame Gen o baja sombras.",
+                    "type": "caution"
+                }
+            return {
+                "status": "AJUSTE RECOMENDADO",
+                "message": f"{fps} FPS ({frametime}ms) • Considera optimizar resolución o escalado.",
+                "type": "caution"
+            }
+            
+    # Fallback sin MangoHud
+    if gpu_load >= 90:
+        return {
+            "status": "GPU AL MÁXIMO",
+            "message": f"Carga GPU al {gpu_load}% • {gpu_temp}°C • Consumo total {total_watts}W",
+            "type": "optimal"
+        }
+    return {
+        "status": "SISTEMA ESTABLE",
+        "message": f"Consumo total {total_watts}W (GPU {int(gpu_watts)}W • CPU {int(cpu_watts)}W) • {gpu_temp}°C",
+        "type": "good"
+    }
+
+cached_telemetry = {
+    "cpuUsage": 0, "cpuTemp": 0, "cpuWatts": 0.0,
+    "gpuUsage": 0, "gpuTemp": 0, "gpuWatts": 0.0, "totalWatts": 0.0,
+    "vramUsed": 0.0, "vramTotal": 8.0,
+    "fps": None, "frametime": None, "hasMangoHud": False,
+    "insight": {"status": "SISTEMA ESTABLE", "message": "Iniciando telemetría", "type": "good"}
+}
 cached_media = None
 last_media_check = 0
 
@@ -233,23 +390,62 @@ def update_telemetry():
     except Exception:
         pass
 
-    # 3. GPU Stats
+    # 3. CPU Power (Watts via RAPL)
+    cpu_watts = get_cpu_watts()
+    if cpu_watts == 0.0 and "cpuWatts" in cached_telemetry:
+        cpu_watts = cached_telemetry.get("cpuWatts", 0.0)
+
+    # 4. GPU Stats via nvidia-smi
     gpu_usage = cached_telemetry.get("gpuUsage", 0)
     gpu_temp = cached_telemetry.get("gpuTemp", 0)
+    gpu_watts = cached_telemetry.get("gpuWatts", 0.0)
+    vram_used = cached_telemetry.get("vramUsed", 0.0)
+    vram_total = cached_telemetry.get("vramTotal", 8.0)
     try:
-        p = subprocess.run(["nvidia-smi", "--query-gpu=utilization.gpu,temperature.gpu", "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=0.6)
+        p = subprocess.run(["nvidia-smi", "--query-gpu=utilization.gpu,temperature.gpu,power.draw,memory.used,memory.total", "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=0.6)
         parts = [x.strip() for x in p.stdout.strip().split(",")]
-        if len(parts) >= 2:
+        if len(parts) >= 5:
             gpu_usage = int(float(parts[0]))
             gpu_temp = int(float(parts[1]))
+            gpu_watts = round(float(parts[2]), 1)
+            vram_used = round(float(parts[3]) / 1024.0, 1)
+            vram_total = round(float(parts[4]) / 1024.0, 1)
     except Exception:
         pass
+
+    # 5. MangoHud live metrics (FPS, Frametime, Overrides)
+    mhud = get_mangohud_stats()
+    fps = None
+    frametime = None
+    has_mangohud = False
+    if mhud:
+        fps = mhud.get("fps")
+        frametime = mhud.get("frametime")
+        has_mangohud = True
+        if mhud.get("gpuWatts", 0) > 0:
+            gpu_watts = mhud["gpuWatts"]
+        if mhud.get("cpuWatts", 0) > 0:
+            cpu_watts = mhud["cpuWatts"]
+        if mhud.get("vramUsed", 0) > 0:
+            vram_used = mhud["vramUsed"]
+
+    total_watts = round(gpu_watts + cpu_watts, 1)
+    insight = evaluate_performance(fps, frametime, gpu_usage, gpu_temp, gpu_watts, cpu_usage, cpu_temp, cpu_watts, vram_used, vram_total)
 
     cached_telemetry = {
         "cpuUsage": cpu_usage,
         "cpuTemp": cpu_temp,
+        "cpuWatts": cpu_watts,
         "gpuUsage": gpu_usage,
-        "gpuTemp": gpu_temp
+        "gpuTemp": gpu_temp,
+        "gpuWatts": gpu_watts,
+        "totalWatts": total_watts,
+        "vramUsed": vram_used,
+        "vramTotal": vram_total,
+        "fps": fps,
+        "frametime": frametime,
+        "hasMangoHud": has_mangohud,
+        "insight": insight
     }
     return cached_telemetry
 
@@ -278,6 +474,7 @@ def stream_loop():
             last_game_check = now
             
         if not game:
+            cleanup_mangohud_logs()
             print(json.dumps({"active": False}), flush=True)
             time.sleep(1.0)
             continue

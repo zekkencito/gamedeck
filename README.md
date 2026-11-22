@@ -10,7 +10,10 @@ Detects active games and displays high-res cover art, ambient backlighting sampl
 
 - **Automatic game detection:** Identifies games on Hyprland (Steam, Lutris, Heroic) without manual configuration.
 - **Perimeter ambient backlighting:** 360° concentric bulb glow dynamically sampled from the cover palette, ignoring title text highlights.
-- **Hardware telemetry:** Real-time CPU & GPU load and temperature monitor (NVIDIA SMI, AMD/Intel drm sysfs, and `lm_sensors`).
+- **Live FPS & Frametime:** Real-time in-game framerate and frametime pacing powered by MangoHud integration.
+- **System Power Consumption (Wattage):** Real-time combined GPU and CPU power draw (W) via NVIDIA SMI and Intel/AMD RAPL.
+- **Hardware telemetry:** Real-time CPU & GPU load, temperatures, and VRAM utilization.
+- **Smart Performance Evaluator:** Intelligent status capsule evaluating hardware health, thermals, and bottlenecks with actionable optimization recommendations.
 - **Session & playtime counter:** Tracks current run time alongside total accumulated game launcher playtime.
 - **Haptic media dock:** Universal MPRIS media player (YouTube Music, Spotify, browsers) with real-time push events and vector playback controls.
 - **Non-intrusive overlay:** Wayland layer-shell overlay without grabbing mouse focus from the active game.
