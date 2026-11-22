@@ -484,7 +484,7 @@ Item {
                             spacing: 6
 
                             Text {
-                                text: "FRAMERATE & PACING"
+                                text: "RENDIMIENTO Y FPS"
                                 font.pixelSize: 11
                                 font.letterSpacing: 2.2
                                 font.weight: Font.Bold
@@ -496,7 +496,7 @@ Item {
                             RowLayout {
                                 spacing: 8
                                 Text {
-                                    text: root.hasFps ? (root.gameFps + " FPS") : (root.gpuUsage + "% LOAD")
+                                    text: root.hasFps ? (root.gameFps + " FPS") : (root.gpuUsage + "% CARGA")
                                     font.pixelSize: 28
                                     font.family: "monospace"
                                     font.weight: Font.Bold
@@ -535,7 +535,7 @@ Item {
                             spacing: 6
 
                             Text {
-                                text: "SYSTEM POWER DRAW"
+                                text: "CONSUMO ENERGÉTICO"
                                 font.pixelSize: 11
                                 font.letterSpacing: 2.2
                                 font.weight: Font.Bold
@@ -585,7 +585,7 @@ Item {
                             spacing: 6
 
                             Text {
-                                text: "GPU & CPU TELEMETRY"
+                                text: "TELEMETRÍA GPU Y CPU"
                                 font.pixelSize: 11
                                 font.letterSpacing: 2.2
                                 font.weight: Font.Bold
@@ -644,7 +644,7 @@ Item {
                             spacing: 6
 
                             Text {
-                                text: "SESSION CHRONOGRAPH"
+                                text: "TIEMPO DE SESIÓN"
                                 font.pixelSize: 11
                                 font.letterSpacing: 2.2
                                 font.weight: Font.Bold

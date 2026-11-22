@@ -194,6 +194,10 @@ def get_cpu_watts():
 
 def get_mangohud_stats():
     log_dir = "/dev/shm/mangologs"
+    try:
+        os.makedirs(log_dir, exist_ok=True)
+    except Exception:
+        pass
     if not os.path.exists(log_dir):
         return None
     try:
@@ -249,57 +253,57 @@ def evaluate_performance(fps, frametime, gpu_load, gpu_temp, gpu_watts, cpu_load
     
     if gpu_temp >= 85 or cpu_temp >= 90:
         return {
-            "pacing": "THROTTLED",
-            "headroom": "THERMAL LIMIT",
-            "diag": f"HIGH TEMP DETECTED (GPU {gpu_temp}°C / CPU {cpu_temp}°C)",
+            "pacing": "REDUCIDO",
+            "headroom": "LÍMITE TÉRMICO",
+            "diag": f"TEMPERATURA ELEVADA (GPU {gpu_temp}°C / CPU {cpu_temp}°C)",
             "level": "warn"
         }
 
     if vram_total > 0 and vram_used > 0 and (vram_used / vram_total) >= 0.92:
         return {
-            "pacing": "VRAM PEAK",
+            "pacing": "VRAM AL MÁXIMO",
             "headroom": f"{vram_used:.1f}G / {vram_total:.1f}G",
-            "diag": "VRAM REACHING CAPACITY — REDUCE TEXTURE RESOLUTION",
+            "diag": "VRAM CASI LLENA — BAJA RESOLUCIÓN DE TEXTURAS",
             "level": "warn"
         }
 
     if fps is not None and fps > 0:
         if frametime is not None and frametime > 0:
             if frametime <= 12.0:
-                pacing = f"SMOOTH • {frametime:.1f}MS"
+                pacing = f"FLUIDO • {frametime:.1f}MS"
             elif frametime <= 18.0:
-                pacing = f"STABLE • {frametime:.1f}MS"
+                pacing = f"ESTABLE • {frametime:.1f}MS"
             elif frametime <= 25.0:
-                pacing = f"PLAYABLE • {frametime:.1f}MS"
+                pacing = f"JUGABLE • {frametime:.1f}MS"
             else:
-                pacing = f"JITTER • {frametime:.1f}MS"
+                pacing = f"INESTABLE • {frametime:.1f}MS"
         else:
             pacing = f"{fps} FPS"
 
         if gpu_load >= 92:
-            headroom = f"GPU BOUND ({gpu_load}%)"
+            headroom = f"LÍMITE GPU ({gpu_load}%)"
             if fps < 50:
-                diag = "GPU SATURATED — LOWER SHADOWS OR ENABLE DLSS"
+                diag = "GPU SATURADA — REDUCE SOMBRAS O ACTIVA DLSS"
                 level = "warn"
             else:
-                diag = f"FULL GPU SATURATION • {total_watts}W TOTAL POWER"
+                diag = f"GPU AL MÁXIMO • {total_watts}W CONSUMO TOTAL"
                 level = "normal"
         elif cpu_load >= 85:
-            headroom = f"CPU BOUND ({cpu_load}%)"
-            diag = "CPU BOTTLENECK DETECTED — REDUCE BACKGROUND LOAD"
+            headroom = f"LÍMITE CPU ({cpu_load}%)"
+            diag = "CUELLO DE BOTELLA CPU — CIERRA APPS DE FONDO"
             level = "warn"
         else:
-            headroom = f"BALANCED ({gpu_load}% GPU)"
-            diag = f"{fps} FPS ACTIVE • {total_watts}W TOTAL POWER"
+            headroom = f"EQUILIBRADO ({gpu_load}% GPU)"
+            diag = f"{fps} FPS ACTIVOS • {total_watts}W CONSUMO TOTAL"
             level = "normal"
     else:
         if gpu_load >= 90:
-            headroom = f"GPU ACTIVE ({gpu_load}%)"
-            diag = f"HIGH GPU UTILIZATION • {gpu_temp}°C • {total_watts}W"
+            headroom = f"GPU ACTIVA ({gpu_load}%)"
+            diag = f"ALTA CARGA GPU • {gpu_temp}°C • {total_watts}W"
         else:
-            headroom = f"NORMAL ({gpu_load}%)"
-            diag = f"HARDWARE NOMINAL • {total_watts}W COMBINED DRAW"
-        pacing = "ACTIVE"
+            headroom = f"ESTABLE ({gpu_load}%)"
+            diag = f"HARDWARE NOMINAL • {total_watts}W CONSUMO"
+        pacing = "ACTIVO"
         level = "normal"
 
     return {
@@ -315,9 +319,9 @@ cached_telemetry = {
     "vramUsed": 0.0, "vramTotal": 8.0,
     "fps": None, "frametime": None, "hasMangoHud": False,
     "insight": {
-        "pacing": "STANDBY",
-        "headroom": "NOMINAL",
-        "diag": "INITIALIZING TELEMETRY STREAM",
+        "pacing": "ESPERA",
+        "headroom": "ESTABLE",
+        "diag": "INICIANDO TELEMETRÍA",
         "level": "normal"
     }
 }
