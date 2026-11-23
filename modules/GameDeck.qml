@@ -606,7 +606,7 @@ Item {
                                     styleColor: Qt.rgba(0, 0, 0, 0.75)
                                 }
                                 Text {
-                                    text: "• " + root.gpuTemp + "°C"
+                                    text: "• " + root.gpuTemp + "°" + (root.cpuTemp > 0 ? (" / " + root.cpuTemp + "°C") : "°C")
                                     font.pixelSize: 15
                                     font.family: "monospace"
                                     font.weight: Font.DemiBold
@@ -617,7 +617,7 @@ Item {
 
                             Text {
                                 visible: root.vramUsed > 0
-                                text: root.vramUsed.toFixed(1) + " / " + root.vramTotal.toFixed(1) + " GB VRAM  •  " + root.insightHeadroom
+                                text: root.vramUsed.toFixed(1) + " / " + root.vramTotal.toFixed(1) + " GB VRAM  •  GPU " + root.gpuTemp + "°C • CPU " + root.cpuTemp + "°C"
                                 font.pixelSize: 11
                                 font.family: "monospace"
                                 font.letterSpacing: 1.0
